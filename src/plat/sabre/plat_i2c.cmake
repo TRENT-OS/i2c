@@ -1,8 +1,10 @@
 #
 # I2C defaults for platform sabre (i.MX6 based Sabre Lite board)
 #
-# Copyright (C) 2021, HENSOLDT Cyber GmbH
-#
+# Copyright (C) 2021-2024, HENSOLDT Cyber GmbH
+# 
+# SPDX-License-Identifier: BSD-3-Clause
+# 
 
 cmake_minimum_required(VERSION 3.17)
 

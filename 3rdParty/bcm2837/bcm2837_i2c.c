@@ -1,40 +1,38 @@
-
-//TODO Work in Progress!!
-
-//HElPER stuff
+/*
+ * Copyright (C) 2022-2024, HENSOLDT Cyber GmbH
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
 #include "bcm2837_i2c.h"
 #include <stddef.h>
-
 
 /* This variable allows us to test on hardware other than RPi.
 // It prevents access to the kernel memory, and does not do any peripheral access
 // Instead it prints out what it _would_ do if debug were 0
  */
 
-
 /* I2C The time needed to transmit one byte. In microseconds.
  */
 static int i2c_byte_wait_us = 0;
 
-static volatile uint32_t* bcm2837_bsc = NULL;
-
+static volatile uint32_t *bcm2837_bsc = NULL;
 
 void bcm2837_delayMicroseconds(uint64_t dummyseconds);
 
-int bcm2837_i2c_begin(void* vaddr, void* gpio_vaddr)
+int bcm2837_i2c_begin(void *vaddr, void *gpio_vaddr)
 {
-//TODO Allow for both I2C to be used with outside Define!
+    // TODO Allow for both I2C to be used with outside Define!
     uint16_t cdiv = 0;
-    volatile uint32_t* paddr = NULL;
+    volatile uint32_t *paddr = NULL;
 
     bcm2837_gpio_init(gpio_vaddr);
-    bcm2837_bsc = (uint32_t*)(vaddr);
-    
+    bcm2837_bsc = (uint32_t *)(vaddr);
+
     /* Set the I2C/BSC pins to enable I2C access on them */
     bcm2837_gpio_fsel(SDAPIN, SDAMODE); /* SDA */
-    bcm2837_gpio_fsel(SCLPIN, SCLMODE); /* SCL */ 
-    paddr = bcm2837_bsc + BCM2837_BSC_DIV/4;
+    bcm2837_gpio_fsel(SCLPIN, SCLMODE); /* SCL */
+    paddr = bcm2837_bsc + BCM2837_BSC_DIV / 4;
     /* Read the clock divider register */
     cdiv = bcm2837_peri_read(paddr);
     /* Calculate time for transmitting one byte
@@ -49,17 +47,15 @@ int bcm2837_i2c_begin(void* vaddr, void* gpio_vaddr)
 void bcm2837_i2c_end(void)
 {
 
-//TODO allow generic define for GPIO with outside defines!
+    // TODO allow generic define for GPIO with outside defines!
     bcm2837_gpio_fsel(SDAPIN, BCM2837_GPIO_FSEL_INPT); /* SDA */
     bcm2837_gpio_fsel(SCLPIN, BCM2837_GPIO_FSEL_INPT); /* SCL */
-
 }
-
 
 void bcm2837_i2c_setSlaveAddress(uint8_t addr)
 {
     /* Set I2C Device Address */
-    volatile uint32_t* paddr = bcm2837_bsc + BCM2837_BSC_A/4;
+    volatile uint32_t *paddr = bcm2837_bsc + BCM2837_BSC_A / 4;
     bcm2837_peri_write(paddr, addr);
 }
 
@@ -69,7 +65,7 @@ void bcm2837_i2c_setSlaveAddress(uint8_t addr)
 */
 void bcm2837_i2c_setClockDivider(uint16_t divider)
 {
-    volatile uint32_t* paddr = bcm2837_bsc + BCM2837_BSC_DIV/4;
+    volatile uint32_t *paddr = bcm2837_bsc + BCM2837_BSC_DIV / 4;
 
     bcm2837_peri_write(paddr, divider);
     /* Calculate time for transmitting one byte
@@ -82,32 +78,32 @@ void bcm2837_i2c_setClockDivider(uint16_t divider)
 /* set I2C clock divider by means of a baudrate number */
 void bcm2837_i2c_set_baudrate(uint32_t baudrate)
 {
-	uint32_t divider;
-	/* use 0xFFFE mask to limit a max value and round down any odd number */
-	divider = (BCM2837_CORE_CLK_HZ / baudrate) & 0xFFFE;
-	bcm2837_i2c_setClockDivider( (uint16_t)divider );
+    uint32_t divider;
+    /* use 0xFFFE mask to limit a max value and round down any odd number */
+    divider = (BCM2837_CORE_CLK_HZ / baudrate) & 0xFFFE;
+    bcm2837_i2c_setClockDivider((uint16_t)divider);
 }
 
 /* Writes an number of bytes to I2C */
-int bcm2837_i2c_write(const char * buf, uint32_t len)
+int bcm2837_i2c_write(const char *buf, uint32_t len)
 {
-    volatile uint32_t* dlen    = bcm2837_bsc + BCM2837_BSC_DLEN/4;
-    volatile uint32_t* fifo    = bcm2837_bsc + BCM2837_BSC_FIFO/4;
-    volatile uint32_t* status  = bcm2837_bsc + BCM2837_BSC_S/4;
-    volatile uint32_t* control = bcm2837_bsc + BCM2837_BSC_C/4;  
+    volatile uint32_t *dlen = bcm2837_bsc + BCM2837_BSC_DLEN / 4;
+    volatile uint32_t *fifo = bcm2837_bsc + BCM2837_BSC_FIFO / 4;
+    volatile uint32_t *status = bcm2837_bsc + BCM2837_BSC_S / 4;
+    volatile uint32_t *control = bcm2837_bsc + BCM2837_BSC_C / 4;
 
     uint32_t remaining = len;
     uint32_t i = 0;
-//    int reason = BCM2837_I2C_REASON_OK;
+    //    int reason = BCM2837_I2C_REASON_OK;
 
     /* Clear FIFO */
-    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1 , BCM2837_BSC_C_CLEAR_1 );
+    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1, BCM2837_BSC_C_CLEAR_1);
     /* Clear Status */
     bcm2837_peri_write(status, BCM2837_BSC_S_CLKT | BCM2837_BSC_S_ERR | BCM2837_BSC_S_DONE);
     /* Set Data Length */
     bcm2837_peri_write(dlen, len);
     /* pre populate FIFO with max buffer */
-    while( remaining && ( i < BCM2837_BSC_FIFO_SIZE ) )
+    while (remaining && (i < BCM2837_BSC_FIFO_SIZE))
     {
         bcm2837_peri_write_nb(fifo, buf[i]);
         i++;
@@ -115,70 +111,70 @@ int bcm2837_i2c_write(const char * buf, uint32_t len)
     }
     /* Enable device and start transfer */
     bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST);
-    
+
     /* Transfer is over when BCM2837_BSC_S_DONE */
-    while(!(bcm2837_peri_read(status) & BCM2837_BSC_S_DONE ))
+    while (!(bcm2837_peri_read(status) & BCM2837_BSC_S_DONE))
     {
-        while ( remaining && (bcm2837_peri_read(status) & BCM2837_BSC_S_TXD ))
-    	{
-	    /* Write to FIFO */
-	    bcm2837_peri_write(fifo, buf[i]);
-	    i++;
-	    remaining--;
-    	}
+        while (remaining && (bcm2837_peri_read(status) & BCM2837_BSC_S_TXD))
+        {
+            /* Write to FIFO */
+            bcm2837_peri_write(fifo, buf[i]);
+            i++;
+            remaining--;
+        }
     }
 
-   bcm2837_peri_set_bits(control, BCM2837_BSC_S_DONE , BCM2837_BSC_S_DONE);
+    bcm2837_peri_set_bits(control, BCM2837_BSC_S_DONE, BCM2837_BSC_S_DONE);
 
     /* Received a NACK */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_ERR)
     {
-	    return BCM2837_I2C_REASON_ERROR_NACK;
+        return BCM2837_I2C_REASON_ERROR_NACK;
     }
 
     /* Received Clock Stretch Timeout */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_CLKT)
     {
-	    return BCM2837_I2C_REASON_ERROR_CLKT;
-    } 
+        return BCM2837_I2C_REASON_ERROR_CLKT;
+    }
 
-    return (int) (len - remaining);
+    return (int)(len - remaining);
 }
 
 /* Read an number of bytes from I2C */
-int bcm2837_i2c_read(char* buf, uint32_t len)
+int bcm2837_i2c_read(char *buf, uint32_t len)
 {
-    volatile uint32_t* dlen    = bcm2837_bsc + BCM2837_BSC_DLEN/4;
-    volatile uint32_t* fifo    = bcm2837_bsc + BCM2837_BSC_FIFO/4;
-    volatile uint32_t* status  = bcm2837_bsc + BCM2837_BSC_S/4;
-    volatile uint32_t* control = bcm2837_bsc + BCM2837_BSC_C/4;
+    volatile uint32_t *dlen = bcm2837_bsc + BCM2837_BSC_DLEN / 4;
+    volatile uint32_t *fifo = bcm2837_bsc + BCM2837_BSC_FIFO / 4;
+    volatile uint32_t *status = bcm2837_bsc + BCM2837_BSC_S / 4;
+    volatile uint32_t *control = bcm2837_bsc + BCM2837_BSC_C / 4;
 
     uint32_t remaining = len;
     uint32_t i = 0;
- //   uint8_t reason = BCM2837_I2C_REASON_OK;
+    //   uint8_t reason = BCM2837_I2C_REASON_OK;
 
     /* Clear FIFO */
-    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1 , BCM2837_BSC_C_CLEAR_1 );
+    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1, BCM2837_BSC_C_CLEAR_1);
     /* Clear Status */
     bcm2837_peri_write_nb(status, BCM2837_BSC_S_CLKT | BCM2837_BSC_S_ERR | BCM2837_BSC_S_DONE);
     /* Set Data Length */
     bcm2837_peri_write_nb(dlen, len);
     /* Start read */
     bcm2837_peri_write_nb(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST | BCM2837_BSC_C_READ);
-    
+
     /* wait for transfer to complete */
     while (!(bcm2837_peri_read_nb(status) & BCM2837_BSC_S_DONE))
     {
         /* we must empty the FIFO as it is populated and not use any delay */
         while (remaining && bcm2837_peri_read_nb(status) & BCM2837_BSC_S_RXD)
-    	{
-	    /* Read from FIFO, no barrier */
-	    buf[i] = bcm2837_peri_read_nb(fifo);
-	    i++;
-	    remaining--;
-    	}
+        {
+            /* Read from FIFO, no barrier */
+            buf[i] = bcm2837_peri_read_nb(fifo);
+            i++;
+            remaining--;
+        }
     }
-    
+
     /* transfer has finished - grab any remaining stuff in FIFO */
     while (remaining && (bcm2837_peri_read_nb(status) & BCM2837_BSC_S_RXD))
     {
@@ -187,37 +183,37 @@ int bcm2837_i2c_read(char* buf, uint32_t len)
         i++;
         remaining--;
     }
-    
-    bcm2837_peri_set_bits(status, BCM2837_BSC_S_DONE , BCM2837_BSC_S_DONE);
+
+    bcm2837_peri_set_bits(status, BCM2837_BSC_S_DONE, BCM2837_BSC_S_DONE);
     /* Received a NACK */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_ERR)
     {
-	    return BCM2837_I2C_REASON_ERROR_NACK;
+        return BCM2837_I2C_REASON_ERROR_NACK;
     }
 
     /* Received Clock Stretch Timeout */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_CLKT)
     {
-	    return BCM2837_I2C_REASON_ERROR_CLKT;
+        return BCM2837_I2C_REASON_ERROR_CLKT;
     }
 
-    return (int) len - remaining;
+    return (int)len - remaining;
 }
 
 /* Read an number of bytes from I2C sending a repeated start after writing
 // the required register. Only works if your device supports this mode
 */
-int bcm2837_i2c_read_register_rs(char* regaddr, char* buf, uint32_t len)
-{   
-    volatile uint32_t* dlen    = bcm2837_bsc + BCM2837_BSC_DLEN/4;
-    volatile uint32_t* fifo    = bcm2837_bsc + BCM2837_BSC_FIFO/4;
-    volatile uint32_t* status  = bcm2837_bsc + BCM2837_BSC_S/4;
-    volatile uint32_t* control = bcm2837_bsc + BCM2837_BSC_C/4;
-	uint32_t remaining = len;
+int bcm2837_i2c_read_register_rs(char *regaddr, char *buf, uint32_t len)
+{
+    volatile uint32_t *dlen = bcm2837_bsc + BCM2837_BSC_DLEN / 4;
+    volatile uint32_t *fifo = bcm2837_bsc + BCM2837_BSC_FIFO / 4;
+    volatile uint32_t *status = bcm2837_bsc + BCM2837_BSC_S / 4;
+    volatile uint32_t *control = bcm2837_bsc + BCM2837_BSC_C / 4;
+    uint32_t remaining = len;
     uint32_t i = 0;
-    
+
     /* Clear FIFO */
-    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1 , BCM2837_BSC_C_CLEAR_1 );
+    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1, BCM2837_BSC_C_CLEAR_1);
     /* Clear Status */
     bcm2837_peri_write(status, BCM2837_BSC_S_CLKT | BCM2837_BSC_S_ERR | BCM2837_BSC_S_DONE);
     /* Set Data Length */
@@ -226,33 +222,33 @@ int bcm2837_i2c_read_register_rs(char* regaddr, char* buf, uint32_t len)
     bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN);
     bcm2837_peri_write(fifo, regaddr[0]);
     bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST);
-    
+
     /* poll for transfer has started */
-    while ( !( bcm2837_peri_read(status) & BCM2837_BSC_S_TA ) )
+    while (!(bcm2837_peri_read(status) & BCM2837_BSC_S_TA))
     {
         /* Linux may cause us to miss entire transfer stage */
-        if(bcm2837_peri_read(status) & BCM2837_BSC_S_DONE)
+        if (bcm2837_peri_read(status) & BCM2837_BSC_S_DONE)
             break;
     }
-    
+
     /* Send a repeated start with read bit set in address */
     bcm2837_peri_write(dlen, len);
-    bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST  | BCM2837_BSC_C_READ );
-    
+    bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST | BCM2837_BSC_C_READ);
+
     /* Wait for write to complete and first byte back. */
     bcm2837_delayMicroseconds(i2c_byte_wait_us * 3);
-    
+
     /* wait for transfer to complete */
     while (!(bcm2837_peri_read(status) & BCM2837_BSC_S_DONE))
     {
         /* we must empty the FIFO as it is populated and not use any delay */
         while (remaining && bcm2837_peri_read(status) & BCM2837_BSC_S_RXD)
-    	{
-	    /* Read from FIFO */
-	    buf[i] = bcm2837_peri_read(fifo);
-	    i++;
-	    remaining--;
-    	}
+        {
+            /* Read from FIFO */
+            buf[i] = bcm2837_peri_read(fifo);
+            i++;
+            remaining--;
+        }
     }
 
     /* transfer has finished - grab any remaining stuff in FIFO */
@@ -263,47 +259,46 @@ int bcm2837_i2c_read_register_rs(char* regaddr, char* buf, uint32_t len)
         i++;
         remaining--;
     }
-    bcm2837_peri_set_bits(control, BCM2837_BSC_S_DONE , BCM2837_BSC_S_DONE);
-    
+    bcm2837_peri_set_bits(control, BCM2837_BSC_S_DONE, BCM2837_BSC_S_DONE);
+
     /* Received a NACK */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_ERR)
     {
-		return BCM2837_I2C_REASON_ERROR_NACK;
+        return BCM2837_I2C_REASON_ERROR_NACK;
     }
 
     /* Received Clock Stretch Timeout */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_CLKT)
     {
-	    return BCM2837_I2C_REASON_ERROR_CLKT;
+        return BCM2837_I2C_REASON_ERROR_CLKT;
     }
 
-
-    return (int) len-remaining;
+    return (int)len - remaining;
 }
 
-/* Sending an arbitrary number of bytes before issuing a repeated start 
+/* Sending an arbitrary number of bytes before issuing a repeated start
 // (with no prior stop) and reading a response. Some devices require this behavior.
 */
-int bcm2837_i2c_write_read_rs(char* cmds, uint32_t cmds_len, char* buf, uint32_t buf_len)
-{   
-    volatile uint32_t* dlen    = bcm2837_bsc + BCM2837_BSC_DLEN/4;
-    volatile uint32_t* fifo    = bcm2837_bsc + BCM2837_BSC_FIFO/4;
-    volatile uint32_t* status  = bcm2837_bsc + BCM2837_BSC_S/4;
-    volatile uint32_t* control = bcm2837_bsc + BCM2837_BSC_C/4;
+int bcm2837_i2c_write_read_rs(char *cmds, uint32_t cmds_len, char *buf, uint32_t buf_len)
+{
+    volatile uint32_t *dlen = bcm2837_bsc + BCM2837_BSC_DLEN / 4;
+    volatile uint32_t *fifo = bcm2837_bsc + BCM2837_BSC_FIFO / 4;
+    volatile uint32_t *status = bcm2837_bsc + BCM2837_BSC_S / 4;
+    volatile uint32_t *control = bcm2837_bsc + BCM2837_BSC_C / 4;
     uint32_t remaining = cmds_len;
     uint32_t i = 0;
-   
+
     /* Clear FIFO */
-    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1 , BCM2837_BSC_C_CLEAR_1 );
+    bcm2837_peri_set_bits(control, BCM2837_BSC_C_CLEAR_1, BCM2837_BSC_C_CLEAR_1);
 
     /* Clear Status */
     bcm2837_peri_write(status, BCM2837_BSC_S_CLKT | BCM2837_BSC_S_ERR | BCM2837_BSC_S_DONE);
 
     /* Set Data Length */
     bcm2837_peri_write(dlen, cmds_len);
- 
+
     /* pre populate FIFO with max buffer */
-    while( remaining && ( i < BCM2837_BSC_FIFO_SIZE ) )
+    while (remaining && (i < BCM2837_BSC_FIFO_SIZE))
     {
         bcm2837_peri_write_nb(fifo, cmds[i]);
         i++;
@@ -312,38 +307,38 @@ int bcm2837_i2c_write_read_rs(char* cmds, uint32_t cmds_len, char* buf, uint32_t
 
     /* Enable device and start transfer */
     bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST);
-    
+
     /* poll for transfer has started (way to do repeated start, from BCM2837 datasheet) */
-    while ( !( bcm2837_peri_read(status) & BCM2837_BSC_S_TA ) )
+    while (!(bcm2837_peri_read(status) & BCM2837_BSC_S_TA))
     {
         /* Linux may cause us to miss entire transfer stage */
-        if(bcm2837_peri_read_nb(status) & BCM2837_BSC_S_DONE)
+        if (bcm2837_peri_read_nb(status) & BCM2837_BSC_S_DONE)
             break;
     }
-    
+
     remaining = buf_len;
     i = 0;
 
     /* Send a repeated start with read bit set in address */
     bcm2837_peri_write(dlen, buf_len);
-    bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST  | BCM2837_BSC_C_READ );
-    
+    bcm2837_peri_write(control, BCM2837_BSC_C_I2CEN | BCM2837_BSC_C_ST | BCM2837_BSC_C_READ);
+
     /* Wait for write to complete and first byte back. */
     bcm2837_delayMicroseconds(i2c_byte_wait_us * (cmds_len + 1));
-    
+
     /* wait for transfer to complete */
     while (!(bcm2837_peri_read_nb(status) & BCM2837_BSC_S_DONE))
     {
         /* we must empty the FIFO as it is populated and not use any delay */
         while (remaining && bcm2837_peri_read(status) & BCM2837_BSC_S_RXD)
-    	{
-	    /* Read from FIFO, no barrier */
-	    buf[i] = bcm2837_peri_read_nb(fifo);
-	    i++;
-	    remaining--;
-    	}
+        {
+            /* Read from FIFO, no barrier */
+            buf[i] = bcm2837_peri_read_nb(fifo);
+            i++;
+            remaining--;
+        }
     }
-    
+
     /* transfer has finished - grab any remaining stuff in FIFO */
     while (remaining && (bcm2837_peri_read(status) & BCM2837_BSC_S_RXD))
     {
@@ -352,29 +347,27 @@ int bcm2837_i2c_write_read_rs(char* cmds, uint32_t cmds_len, char* buf, uint32_t
         i++;
         remaining--;
     }
-    bcm2837_peri_set_bits(control, BCM2837_BSC_S_DONE , BCM2837_BSC_S_DONE);
+    bcm2837_peri_set_bits(control, BCM2837_BSC_S_DONE, BCM2837_BSC_S_DONE);
     /* Received a NACK */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_ERR)
     {
-	    return BCM2837_I2C_REASON_ERROR_NACK;
+        return BCM2837_I2C_REASON_ERROR_NACK;
     }
 
     /* Received Clock Stretch Timeout */
     if (bcm2837_peri_read(status) & BCM2837_BSC_S_CLKT)
     {
-	    return BCM2837_I2C_REASON_ERROR_CLKT;
+        return BCM2837_I2C_REASON_ERROR_CLKT;
     }
- 
 
-    return (int) buf_len - remaining;
+    return (int)buf_len - remaining;
 }
 
- void bcm2837_delayMicroseconds(uint64_t dummyseconds)
-  {
-      return;
-      for(int i = 0; i < 10000; i++)
-      {
+void bcm2837_delayMicroseconds(uint64_t dummyseconds)
+{
+    return;
+    for (int i = 0; i < 10000; i++)
+    {
         __asm__("nop");
-      }
-
-  }
+    }
+}

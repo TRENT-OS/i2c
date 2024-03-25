@@ -1,4 +1,8 @@
-
+/*
+ * Copyright (C) 2020-2024, HENSOLDT Cyber GmbH
+ * 
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
 #include "lib_debug/Debug.h"
 

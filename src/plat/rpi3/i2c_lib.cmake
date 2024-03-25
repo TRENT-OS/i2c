@@ -1,3 +1,9 @@
+#
+# Copyright (C) 2020-2024, HENSOLDT Cyber GmbH
+# 
+# SPDX-License-Identifier: BSD-3-Clause
+#
+
 set(I2C_LIB_INCLUDE ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/bcm2837)
 set(I2C_LIB_SOURCE  ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/bcm2837/bcm2837_i2c.c ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/3rdParty/bcm2837/bcm2837_gpio.c)
 

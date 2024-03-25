@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2021-2022, HENSLDT Cyber GmbH
+ * Copyright (C) 2021-2024, HENSOLDT Cyber GmbH
+ * 
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 
  procedure if_I2C{
